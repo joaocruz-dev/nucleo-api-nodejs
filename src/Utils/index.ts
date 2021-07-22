@@ -1,24 +1,16 @@
 import * as fs from 'fs'
-import { Mapper } from '@nartc/automapper'
 import { plainToClass } from 'class-transformer'
 
-import { TypeClass } from 'src/types/utils'
-import { OptionsRandomString } from 'src/types/options'
+import { TypeClass } from '../types/utils'
+import { OptionsRandomString } from '../types/options'
 
 export const keys = <T extends object> (obj: T): Array<keyof T> => {
   return Object.keys(obj) as Array<keyof T>
 }
 
-export const ToClass = <T> (data: T|T[], destination: TypeClass<T>): Promise<T|T[]> => {
+export const ToClass = (data: any | any[], destination: TypeClass<any>): Promise<any | any[]> => {
   return new Promise((resolve, reject) => {
     resolve(plainToClass(destination, data))
-  })
-}
-
-export const ToMapper = <T, U> (data: T|T[], destination: TypeClass<U>): Promise<U|U[]> => {
-  return new Promise((resolve, reject) => {
-    if (Array.isArray(data)) resolve(Mapper.mapArray(data, destination))
-    else resolve(Mapper.map(data, destination))
   })
 }
 
