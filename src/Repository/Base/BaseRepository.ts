@@ -8,18 +8,20 @@ import ChangeHistory from '../../Models/ChangeHistory/ChangeHistory'
 
 export default abstract class BaseRepository<T extends BaseEntity> {
   private _Entity: TypeClass<T>
-  private _collection: string
+  private dataBase = new DataBase()
+  private _collection: string = null
 
   constructor (Entity: TypeClass<T>, name?: string) {
     this._Entity = Entity
-    if (!name) name = Entity.name + 's'
+    if (!name) {
+      name = Entity.name + 's'
+      name = name[0].toUpperCase() + name.substr(1)
+    }
     this._collection = name
   }
 
-  public db = new DataBase().db
-
   public get collection (): Collection<T> {
-    return this.db.collection<T>(this._collection)
+    return this.dataBase.db.collection<T>(this._collection)
   }
 
   public async getSize (filter?: FilterQuery<T>): Promise<number> {
