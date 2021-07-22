@@ -7,6 +7,9 @@ import * as Utils from './Utils'
 import * as UtilsTypes from './types/utils'
 import { OptionsServer } from './types/options'
 
+// Mapper
+import * as AutoMapper from './AutoMapper'
+
 // Router
 import Router from './Functions/Router/Router'
 import Action from './Functions/Router/Action'
@@ -41,26 +44,32 @@ export default class NucleoApi {
       console.log('INITIALIZING MASTER WORKER PROCESS!!')
       console.log('====================================')
 
+      // Setting token secret key
+      Settings.setSecret()
+
       if (Settings.multiprocessing) {
         const dataBase = new DataBase()
         dataBase.connect(migrations)
 
+        const cpusLength = cpus().length
+        console.log(`\nStarting ${cpusLength} cpu cores...`)
+
         for (let i = 0; i < cpus().length; i++) cluster.fork()
         cluster.on('exit', (worker, code, signal) => {
           cluster.fork()
-          console.log(`Worker ${worker.process.pid} died (${signal || code}). Restarting...`)
+          console.log(`\nWorker ${worker.process.pid} died (${signal || code}). Restarting...`)
         })
-      } else this._createServer(init)
+      } else this._createServer(init, migrations)
     } else this._createServer(init)
   }
 
-  private async _createServer (init: () => Promise<http.RequestListener>) {
+  private async _createServer (init: () => Promise<http.RequestListener>, migrations?: () => Promise<void>) {
     const dataBase = new DataBase()
-    const { 0: server } = await Promise.all([init(), dataBase.connect()])
+    const { 0: server } = await Promise.all([init(), dataBase.connect(migrations)])
 
-    console.log(`Worker ${process.pid} started!`)
+    console.log(`\nWorker ${process.pid} started!`)
     http.createServer(server).listen(Settings.port)
   }
 }
 
-export { Utils, UtilsTypes, Router, Action, Controller, GroupController, Token, Settings, HashToken, BaseEntity, ChangeHistory, BaseService, DataBase, BaseRepository }
+export { Utils, UtilsTypes, AutoMapper, Router, Action, Controller, GroupController, Token, Settings, HashToken, BaseEntity, ChangeHistory, BaseService, DataBase, BaseRepository }

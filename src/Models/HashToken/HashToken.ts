@@ -1,6 +1,6 @@
 import { AutoMap } from '@nartc/automapper'
 
-import { randomString } from 'src/Utils'
+import { randomString } from '../../Utils'
 
 export default class HashToken {
   @AutoMap()
