@@ -1,4 +1,4 @@
-import { Mapper } from '@nartc/automapper'
+import { Mapper } from '../../AutoMapper'
 
 import ChangeHistory from './ChangeHistory'
 
