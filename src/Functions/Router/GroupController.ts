@@ -1,15 +1,8 @@
-import { AutoMap } from '@nartc/automapper'
-
 import Controller from './Controller'
 
 export default class GroupController {
-  @AutoMap()
   public name: string
-
-  @AutoMap()
   public icon: string
-
-  @AutoMap()
   public controllers: Controller[]
 
   static getPublicGroups (controllers: GroupController[]): GroupController[] {
