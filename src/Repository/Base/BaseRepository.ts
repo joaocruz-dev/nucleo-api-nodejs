@@ -46,6 +46,16 @@ export default abstract class BaseRepository<T extends BaseEntity> {
     return await this.getAll(filter, options)
   }
 
+  async getFilter (filter?: FilterQuery<T>, options?: FindOneOptions<T extends any ? any: any>): Promise<T[]> {
+    if (!filter) filter = {}
+    const _filter = <FilterQuery<T>>{
+      ...filter,
+      status: { $in: [true, null] },
+      remove: { $in: [false, null] }
+    }
+    return await this.getAll(_filter, options)
+  }
+
   public async getNotRemove (filter?: FilterQuery<T>, options?: FindOneOptions<T extends any ? any: any>): Promise<T[]> {
     if (!filter) filter = {}
     const _filter = <FilterQuery<T>>{

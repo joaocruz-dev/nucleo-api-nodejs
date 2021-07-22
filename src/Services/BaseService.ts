@@ -24,6 +24,10 @@ export default abstract class BaseService<T extends BaseEntity, R extends BaseRe
     return await this.repository.getIds(ids, options)
   }
 
+  async getFilter (filter?: FilterQuery<T>, options?: FindOneOptions<T extends any ? any: any>): Promise<T[]> {
+    return await this.repository.getFilter(filter, options)
+  }
+
   async getNotRemove (filter?: FilterQuery<T>, options?: FindOneOptions<T extends any ? any: any>): Promise<T[]> {
     return await this.repository.getNotRemove(filter, options)
   }
