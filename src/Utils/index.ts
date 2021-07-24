@@ -14,6 +14,11 @@ export const ToClass = (data: any | any[], destination: TypeClass<any>): Promise
   })
 }
 
+export const filterOfText = (text: string): RegExp => {
+  text = text.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+  return new RegExp(text, 'i')
+}
+
 export const readFile = (path: string, type: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     fs.readFile(path, type, (err, data) => {
