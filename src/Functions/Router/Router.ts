@@ -1,5 +1,6 @@
 import { Request } from 'express'
 
+import Action from './Action'
 import Controller from './Controller'
 
 export default abstract class Router {
@@ -10,6 +11,10 @@ export default abstract class Router {
     private _controllers: Controller[]
   ) {
     this._mountPath()
+  }
+
+  public get req (): Request {
+    return this._req
   }
 
   public get path (): string {
@@ -24,7 +29,7 @@ export default abstract class Router {
     return this._req.originalUrl.split('/api/')[1]
   }
 
-  public get action () {
+  public get action (): { controller: Controller, action: Action } {
     const controller = this._controllers.find(controller => `${this.path}/`.startsWith(`${controller.router}/`))
     if (!controller) throw new Error('Controller not found')
     const path = this.path.split(`${controller.router}/`)[1] || null
