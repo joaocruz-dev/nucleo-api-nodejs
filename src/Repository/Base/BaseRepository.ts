@@ -85,6 +85,8 @@ export default abstract class BaseRepository<T extends BaseEntity> {
     let push: any = null
     const filter = <T>{ _id: new ObjectId(data._id) }
 
+    delete data._id
+    if (keys(data).find(x => x === 'remove')) delete data.remove
     if (keys(data).find(x => x === 'changeHistory')) {
       delete data.changeHistory
       if (changeHistory) {
@@ -93,8 +95,6 @@ export default abstract class BaseRepository<T extends BaseEntity> {
         push.changeHistory = changeHistory
       }
     }
-
-    delete data._id
 
     const update: any = { $set: data }
     if (push) update.$push = push
