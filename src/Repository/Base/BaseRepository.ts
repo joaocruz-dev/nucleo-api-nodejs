@@ -29,7 +29,7 @@ export default abstract class BaseRepository<T extends BaseEntity> {
   }
 
   public async getId (id: Id, options?: FindOneOptions<T extends any ? any: any>): Promise<T> {
-    const filter = <T>{ _id: new ObjectId(id) }
+    const filter = <FilterQuery<T>>{ _id: new ObjectId(id) }
     const data = await this.collection.findOne<T>(filter, options)
     return data ? <T>(await ToClass(data, this._Entity)) : null
   }
@@ -78,15 +78,61 @@ export default abstract class BaseRepository<T extends BaseEntity> {
     if (!ObjectId.isValid(data._id)) delete data._id
     const info = await this.collection.insertOne(<OptionalId<T>> data)
 
-    if (!info || info.result.n !== 1) throw new Error(`${this._Entity.name} not added`)
+    if (info?.result?.n !== 1) throw new Error(`${this._Entity.name} not added`)
   }
 
   public async update (data: T, changeHistory?: ChangeHistory): Promise<void> {
+    if (keys(data).find(x => x === 'remove')) delete data.remove
+    await this._update(data, changeHistory)
+  }
+
+  public async remove (data: T, changeHistory?: ChangeHistory): Promise<void> {
+    try {
+      const _data = new this._Entity()
+      _data._id = data._id
+      _data.remove = true
+
+      await this._update(_data, changeHistory)
+    } catch (error) {
+      throw new Error(`${this._Entity.name} not removed`)
+    }
+  }
+
+  public async removeMany (data: T[], changeHistory?: ChangeHistory): Promise<void> {
+    try {
+      const ids = data.map(x => x._id)
+
+      const _data = new this._Entity()
+      _data._id = null
+      _data.remove = true
+
+      await this._updateMany(ids, _data, changeHistory)
+    } catch (error) {
+      throw new Error(`${this._Entity.name} not removed`)
+    }
+  }
+
+  public async delete (data: T): Promise<void> {
+    const filter = <FilterQuery<T>>{ _id: new ObjectId(data._id) }
+
+    const info = await this.collection.deleteOne(filter)
+    if (info?.result?.n !== 1) throw new Error(`${this._Entity.name} not deleted`)
+  }
+
+  public async deleteMany (data: T[]): Promise<void> {
+    const filter = <FilterQuery<T>>{
+      _id: { $in: data.map(x => new ObjectId(x._id)) }
+    }
+
+    const info = await this.collection.deleteMany(filter)
+    if (!(info?.result?.n > 0)) throw new Error(`${this._Entity.name} not deleted`)
+  }
+
+  private async _update (data: T, changeHistory?: ChangeHistory): Promise<void> {
     let push: any = null
     const filter = <T>{ _id: new ObjectId(data._id) }
 
     delete data._id
-    if (keys(data).find(x => x === 'remove')) delete data.remove
     if (keys(data).find(x => x === 'changeHistory')) {
       delete data.changeHistory
       if (changeHistory) {
@@ -100,21 +146,29 @@ export default abstract class BaseRepository<T extends BaseEntity> {
     if (push) update.$push = push
 
     const info = await this.collection.updateOne(filter, update)
-    if (!info || info.result.n !== 1) throw new Error(`${this._Entity.name} not updated`)
+    if (info?.result?.n !== 1) throw new Error(`${this._Entity.name} not updated`)
   }
 
-  public async remove (data: T, changeHistory?: ChangeHistory): Promise<void> {
-    const _data = new this._Entity()
-    _data._id = data._id
-    _data.remove = true
-    if (keys(data).find(x => x === 'changeHistory')) _data.changeHistory = null
+  private async _updateMany (ids: Id[], data: T, changeHistory?: ChangeHistory): Promise<void> {
+    let push: any = null
+    const filter = <FilterQuery<T>>{
+      _id: { $in: ids.map(x => new ObjectId(x)) }
+    }
 
-    await this.update(_data, changeHistory)
-  }
+    delete data._id
+    if (keys(data).find(x => x === 'changeHistory')) {
+      delete data.changeHistory
+      if (changeHistory) {
+        push = {}
+        changeHistory.date = new Date().toISOString()
+        push.changeHistory = changeHistory
+      }
+    }
 
-  public async delete (data: T): Promise<void> {
-    const filter = <T>{ _id: new ObjectId(data._id) }
-    const info = await this.collection.deleteOne(filter)
-    if (!info || info.result.n !== 1) throw new Error(`${this._Entity.name} not deleted`)
+    const update: any = { $set: data }
+    if (push) update.$push = push
+
+    const info = await this.collection.updateMany(filter, update)
+    if (!(info?.result?.n > 0)) throw new Error(`${this._Entity.name} not updated`)
   }
 }
