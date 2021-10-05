@@ -119,7 +119,8 @@ export default abstract class BaseRepository<T extends BaseEntity> {
   public async delete (data: T): Promise<void> {
     const filter: FilterQuery<T> = {}
     this._filters.forEach(x => {
-      filter[x] = data[x]
+      if (x === '_id') filter._id = <any>new ObjectId(data._id)
+      else filter[x] = data[x]
     })
 
     const info = await this.collection.deleteOne(filter)
@@ -144,7 +145,8 @@ export default abstract class BaseRepository<T extends BaseEntity> {
 
     const filter: FilterQuery<T> = {}
     this._filters.forEach(x => {
-      filter[x] = data[x]
+      if (x === '_id') filter._id = <any>new ObjectId(data._id)
+      else filter[x] = data[x]
     })
 
     delete data._id
