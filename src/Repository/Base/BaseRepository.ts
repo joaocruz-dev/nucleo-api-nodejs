@@ -8,20 +8,22 @@ import ChangeHistory from '../../Models/ChangeHistory/ChangeHistory'
 
 export default abstract class BaseRepository<T extends BaseEntity> {
   private _Entity: TypeClass<T>
-  private dataBase = new DataBase()
+  private _dataBase = new DataBase()
   private _collection: string = null
+  private _filters: Array<keyof T> = ['_id']
 
-  constructor (Entity: TypeClass<T>, name?: string) {
+  constructor (Entity: TypeClass<T>, collection?: string, filters?: Array<keyof T>) {
     this._Entity = Entity
-    if (!name) {
-      name = Entity.name + 's'
-      name = name[0].toUpperCase() + name.substr(1)
+    if (!collection) {
+      collection = Entity.name + 's'
+      collection = collection[0].toUpperCase() + collection.substr(1)
     }
-    this._collection = name
+    this._collection = collection
+    this._filters = this._filters.concat(filters || [])
   }
 
   public get collection (): Collection<T> {
-    return this.dataBase.db.collection<T>(this._collection)
+    return this._dataBase.db.collection<T>(this._collection)
   }
 
   public async getSize (filter?: FilterQuery<T>): Promise<number> {
@@ -89,8 +91,11 @@ export default abstract class BaseRepository<T extends BaseEntity> {
   public async remove (data: T, changeHistory?: ChangeHistory): Promise<void> {
     try {
       const _data = new this._Entity()
-      _data._id = data._id
       _data.remove = true
+
+      this._filters.forEach(x => {
+        _data[x] = data[x]
+      })
 
       await this._update(_data, changeHistory)
     } catch (error) {
@@ -100,29 +105,35 @@ export default abstract class BaseRepository<T extends BaseEntity> {
 
   public async removeMany (data: T[], changeHistory?: ChangeHistory): Promise<void> {
     try {
-      const ids = data.map(x => x._id)
-
       const _data = new this._Entity()
       _data._id = null
       _data.remove = true
+      _data.changeHistory = []
 
-      await this._updateMany(ids, _data, changeHistory)
+      await this._updateMany(data, _data, changeHistory)
     } catch (error) {
       throw new Error(`${this._Entity.name} not removed`)
     }
   }
 
   public async delete (data: T): Promise<void> {
-    const filter = <FilterQuery<T>>{ _id: new ObjectId(data._id) }
+    const filter: FilterQuery<T> = {}
+    this._filters.forEach(x => {
+      filter[x] = data[x]
+    })
 
     const info = await this.collection.deleteOne(filter)
     if (info?.result?.n !== 1) throw new Error(`${this._Entity.name} not deleted`)
   }
 
   public async deleteMany (data: T[]): Promise<void> {
-    const filter = <FilterQuery<T>>{
-      _id: { $in: data.map(x => new ObjectId(x._id)) }
-    }
+    if (!data.length) return
+
+    const filter: FilterQuery<T> = {}
+    this._filters.forEach(x => {
+      if (x === '_id') filter._id = { $in: data.map(x => <any>new ObjectId(x._id)) }
+      else filter[x] = data[0][x]
+    })
 
     const info = await this.collection.deleteMany(filter)
     if (!(info?.result?.n > 0)) throw new Error(`${this._Entity.name} not deleted`)
@@ -130,7 +141,11 @@ export default abstract class BaseRepository<T extends BaseEntity> {
 
   private async _update (data: T, changeHistory?: ChangeHistory): Promise<void> {
     let push: any = null
-    const filter = <T>{ _id: new ObjectId(data._id) }
+
+    const filter: FilterQuery<T> = {}
+    this._filters.forEach(x => {
+      filter[x] = data[x]
+    })
 
     delete data._id
     if (keys(data).find(x => x === 'changeHistory')) {
@@ -149,11 +164,14 @@ export default abstract class BaseRepository<T extends BaseEntity> {
     if (info?.result?.n !== 1) throw new Error(`${this._Entity.name} not updated`)
   }
 
-  private async _updateMany (ids: Id[], data: T, changeHistory?: ChangeHistory): Promise<void> {
+  private async _updateMany (values: T[], data: T, changeHistory?: ChangeHistory): Promise<void> {
     let push: any = null
-    const filter = <FilterQuery<T>>{
-      _id: { $in: ids.map(x => new ObjectId(x)) }
-    }
+
+    const filter: FilterQuery<T> = {}
+    this._filters.forEach(x => {
+      if (x === '_id') filter._id = { $in: values.map(x => <any>new ObjectId(x._id)) }
+      else filter[x] = values[0][x]
+    })
 
     delete data._id
     if (keys(data).find(x => x === 'changeHistory')) {
