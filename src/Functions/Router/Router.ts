@@ -52,9 +52,10 @@ export default abstract class Router {
   private _mountPath (): void {
     try {
       const url = this._req.originalUrl.split('?')[0]
-      const layer = this._req.app._router.stack.find((layer: any) => {
+      const layers = this._req.app._router.stack.filter((layer: any) => {
         return layer.regexp.exec(url) && layer.route
       })
+      const layer = layers.find((x: any) => x.route.path === url) || layers[0]
       this._path = layer.route.path.split('/api/')[1]
     } catch (error) {
       throw new Error('Router not found')
