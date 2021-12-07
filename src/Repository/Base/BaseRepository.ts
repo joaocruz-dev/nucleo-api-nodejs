@@ -92,6 +92,7 @@ export default abstract class BaseRepository<T extends BaseEntity> {
     try {
       const _data = new this._Entity()
       _data.remove = true
+      _data.changeHistory = []
 
       this._filters.forEach(x => {
         _data[x] = data[x]
