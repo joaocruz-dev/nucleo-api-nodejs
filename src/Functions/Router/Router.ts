@@ -26,7 +26,7 @@ export default abstract class Router {
   }
 
   public get url (): string {
-    return this._req.originalUrl.split('/api/')[1]
+    return this._req.originalUrl.split('/api/')[1].split('?')[0]
   }
 
   public get action (): { controller: Controller, action: Action } {
@@ -39,8 +39,8 @@ export default abstract class Router {
   }
 
   public get params (): { [key: string]: string } {
-    const url = this._req.originalUrl.split('/')
-    const path = `/api/${this.path}`.split('/')
+    const url = this.url.split('/')
+    const path = this.path.split('/')
 
     const params: any = {}
     for (let i = 0; i < path.length; i++) {
@@ -51,11 +51,10 @@ export default abstract class Router {
 
   private _mountPath (): void {
     try {
-      const url = this._req.originalUrl.split('?')[0]
       const layers = this._req.app._router.stack.filter((layer: any) => {
-        return layer.regexp.exec(url) && layer.route
+        return layer.regexp.exec(`/api/${this.url}`) && layer.route
       })
-      const layer = layers.find((x: any) => x.route.path === url) || layers[0]
+      const layer = layers.find((x: any) => x.route.path === `/api/${this.url}`) || layers[0]
       this._path = layer.route.path.split('/api/')[1]
     } catch (error) {
       throw new Error('Router not found')
