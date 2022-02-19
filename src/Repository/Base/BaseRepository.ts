@@ -6,24 +6,39 @@ import { Id, TypeClass } from '../../types/utils'
 import BaseEntity from '../../Models/BaseEntity/BaseEntity'
 import ChangeHistory from '../../Models/ChangeHistory/ChangeHistory'
 
+interface Options<T> {
+  dbName?: string
+  collection?: string
+  filters?: Array<keyof T>
+}
+
 export default abstract class BaseRepository<T extends BaseEntity> {
   private _Entity: TypeClass<T>
   private _dataBase = new DataBase()
-  private _collection: string = null
   private _filters: Array<keyof T> = ['_id']
 
-  constructor (Entity: TypeClass<T>, collection?: string, filters?: Array<keyof T>) {
+  private _dbName: string = null
+  private _variable: string = null
+  private _collection: string = null
+
+  constructor (Entity: TypeClass<T>, options?: Options<T>) {
     this._Entity = Entity
-    if (!collection) {
-      collection = Entity.name + 's'
-      collection = collection[0].toUpperCase() + collection.substr(1)
+    this._dbName = options?.dbName || null
+    this._collection = options?.collection || null
+    this._filters = this._filters.concat(options?.filters || [])
+
+    if (!this._collection) {
+      this._collection = Entity.name + 's'
+      this._collection = this._collection[0].toUpperCase() + this._collection.slice(1)
     }
-    this._collection = collection
-    this._filters = this._filters.concat(filters || [])
+  }
+
+  public set variable (val: string) {
+    this._variable = val ? `-${val}` : null
   }
 
   public get collection (): Collection<T> {
-    return this._dataBase.db.collection<T>(this._collection)
+    return this._dataBase.db(this._dbName).collection<T>(this._collection + (this._variable || ''))
   }
 
   public async getSize (filter?: FilterQuery<T>): Promise<number> {
