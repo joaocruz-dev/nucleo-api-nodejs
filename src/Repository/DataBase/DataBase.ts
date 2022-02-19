@@ -1,8 +1,7 @@
-import { MongoClient, Db } from 'mongodb'
+import { MongoClient } from 'mongodb'
 
 import Settings from '../../Functions/Settings/Settings'
 
-let db: Db = null
 let dbName: string = null
 let client: MongoClient = null
 
@@ -16,7 +15,6 @@ export default class DataBase {
 
       client.connect(async (e, client) => {
         if (e) return reject(e)
-        db = client.db(dbName)
 
         if (migrations) {
           console.log('\nRunning migrations...')
@@ -28,7 +26,7 @@ export default class DataBase {
     })
   }
 
-  public get db () { return db }
+  public db (name?: string) { return client?.db(name || dbName) }
 
   public get isConnected () { return client && client.isConnected() }
 
