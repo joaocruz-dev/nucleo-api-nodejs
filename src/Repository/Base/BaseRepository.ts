@@ -52,7 +52,9 @@ export default abstract class BaseRepository<T extends BaseEntity> {
   }
 
   public async getAll (filter?: FilterQuery<T>, options?: FindOneOptions<T extends any ? any: any>): Promise<T[]> {
-    const datas = await this.collection.find<T>(filter, options).sort({ _id: 1 }).toArray()
+    options = options || {}
+    if (!options.sort) options.sort = { _id: 1 }
+    const datas = await this.collection.find<T>(filter, options).toArray()
     return <T[]>(await ToClass(datas, this._Entity))
   }
 
