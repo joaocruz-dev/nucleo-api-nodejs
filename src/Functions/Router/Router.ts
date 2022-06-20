@@ -30,11 +30,18 @@ export default abstract class Router {
   }
 
   public get action (): { controller: Controller, action: Action } {
-    const controller = this._controllers.find(controller => `${this.path}/`.startsWith(`${controller.router}/`))
-    if (!controller) throw new Error('Controller not found')
-    const path = this.path.split(`${controller.router}/`)[1] || null
-    const action = controller.actions.find(action => action.route === path && action.method === this.method)
-    if (!action) throw new Error('Action not found')
+    let action = null
+    const controller = this._controllers.find(x => {
+      action = x.actions.find(action => {
+        const path = x.router + (action.route ? `/${action.route}` : '')
+        return this.path === path && action.method === this.method
+      })
+      return action
+    })
+
+    if (!controller) throw new Error('Controller not found!')
+    if (!action) throw new Error('Action not found!')
+
     return { controller, action }
   }
 
